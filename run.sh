@@ -34,13 +34,13 @@ menu() {
     banner
     loading
     echo -e "${YELLOW}Please choose an option:${NC}"
-    echo -e " ${CYAN}[1]${WHITE} IPv4 Setup (ipv4.sh)"
-    echo -e " ${CYAN}[2]${WHITE} Install Panel (panel.sh)"
-    echo -e " ${CYAN}[3]${WHITE} Install Wings (wings.sh)"
-    echo -e " ${CYAN}[4]${WHITE} Install Blueprint (blueprint.sh)"
-    echo -e " ${CYAN}[5]${WHITE} Install Extensions (extensions.sh)"
-    echo -e " ${CYAN}[6]${WHITE} Update System (update.sh)"
-    echo -e " ${CYAN}[7]${WHITE} Uninstall (uninstall.sh)"
+    echo -e " ${CYAN}[1]${WHITE} IPv4 Setup"
+    echo -e " ${CYAN}[2]${WHITE} Panel"
+    echo -e " ${CYAN}[3]${WHITE} Wings"
+    echo -e " ${CYAN}[4]${WHITE} Blueprint"
+    echo -e " ${CYAN}[5]${WHITE} Extensions"
+    echo -e " ${CYAN}[6]${WHITE} Update"
+    echo -e " ${CYAN}[7]${WHITE} Uninstall"
     echo -e " ${CYAN}[8]${WHITE} Exit"
     echo ""
     read -p "Enter your choice [1-8]: " choice
