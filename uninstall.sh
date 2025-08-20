@@ -25,6 +25,7 @@ set -e
 #                                                                                    #
 # This script is not associated with the official Pterodactyl Project.               #
 # https://github.com/pterodactyl-installer/pterodactyl-installer                     #
+
 #                                                                                    #
 ######################################################################################
 
