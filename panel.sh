@@ -27,7 +27,7 @@ fi
 DB_NAME="panel"
 DB_USER="ptero"
 DB_PASS="StrongPassword123"
-PANEL_VERSION="v1.11.4"
+PANEL_VERSION="v1.11.11"
 PANEL_DIR="/var/www/pterodactyl"
 
 # -------------------------------
