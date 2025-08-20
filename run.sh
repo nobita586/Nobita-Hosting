@@ -48,7 +48,7 @@ menu() {
         1) bash ipv4.sh ;;
         2) bash panel.sh ;;
         3) bash wings.sh ;;
-        4) bash blueprint.sh ;;
+        4) bash Blueprint.sh ;;
         5) bash extensions.sh ;;
         6) bash update.sh ;;
         7) bash uninstall.sh ;;
