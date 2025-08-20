@@ -17,6 +17,6 @@ Pterodactyl panel, Blueprint installer, and Extensions.
 ## Getting Started
 ```bash
 git clone https://github.com/nobita586/Nobita-hosting.git
-cd nobita-hosting
+cd Nobita-hosting                                        
 chmod +x run.sh
 ./run.sh
