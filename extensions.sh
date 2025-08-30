@@ -4,7 +4,7 @@ set -e
 # ----------------------------
 # Configuration
 # ----------------------------
-DRIVE_FOLDER_URL="https://drive.google.com/drive/folders/1o0nXU4m63HqfnEuKuzCea2Zl8yqpWS-F"
+DRIVE_FOLDER_URL=""
 DOWNLOAD_DIR="/home/ubuntu/extensions_download"
 SOURCE_DIR="$DOWNLOAD_DIR/extensions"
 PANEL_DIR="/var/www/pterodactyl"
