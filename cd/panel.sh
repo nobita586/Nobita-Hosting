@@ -21,6 +21,7 @@ EOF
 read -p "Enter your domain (e.g., panel.example.com): " DOMAIN
 
 # --- Dependencies ---
+apt update && apt install -y curl unzip git composer php-cli php-mbstring php-bcmath php-
 apt -y install software-properties-common curl apt-transport-https ca-certificates gnupg
 LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
 curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
