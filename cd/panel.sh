@@ -134,6 +134,7 @@ systemctl enable --now redis-server
 systemctl enable --now pteroq.service
 
 # --- Admin User ---
+cd /var/www/pterodactyl
 php artisan p:user:make
 
 echo "✅ Pterodactyl setup complete!"
