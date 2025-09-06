@@ -66,6 +66,7 @@ else
 fi
 
 # Install PHP dependencies and generate key
+cd /var/www/pterodactyl
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 php artisan key:generate --force
 
