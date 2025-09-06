@@ -138,7 +138,7 @@ EOF
 systemctl daemon-reload
 systemctl enable --now redis-server
 systemctl enable --now pteroq.service
-
+php artisan p:user:make
 # --- Create Admin ---
 php artisan p:user:make
 
