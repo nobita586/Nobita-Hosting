@@ -52,9 +52,7 @@ sudo mariadb -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1
 sudo mariadb -e "FLUSH PRIVILEGES;"
 
 # Copy .env and configure
-cd /var/www/pterodactyl
 cp .env.example .env
-php artisan key:generate --force
 sed -i "s|APP_URL=.*|APP_URL=https://${DOMAIN}|g" .env
 sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|g" .env
 sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USER}|g" .env
@@ -69,6 +67,7 @@ fi
 
 # Install PHP dependencies and generate key
 cd /var/www/pterodactyl
+php artisan key:generate --force
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 # Run migrations & set permissions
 php artisan migrate --seed --force
