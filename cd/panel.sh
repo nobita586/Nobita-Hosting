@@ -52,6 +52,11 @@ sudo mariadb -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1
 sudo mariadb -e "FLUSH PRIVILEGES;"
 
 # Copy .env and configure
+if [ ! -f ".env.example" ]; then
+    echo ".env.example not found, downloading fresh copy..."
+    curl -Lo .env.example https://raw.githubusercontent.com/pterodactyl/panel/develop/.env.example
+fi
+
 cp .env.example .env
 sed -i "s|APP_URL=.*|APP_URL=https://${DOMAIN}|g" .env
 sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|g" .env
@@ -64,6 +69,7 @@ if grep -q "^APP_ENVIRONMENT_ONLY=" .env; then
 else
     echo "APP_ENVIRONMENT_ONLY=false" >> .env
 fi
+
 
 # Install PHP dependencies and generate key
 cd /var/www/pterodactyl
