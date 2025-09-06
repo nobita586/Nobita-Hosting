@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e  # Exit on error
+set -e  # Exit on any error
 
 # --- Banner ---
 GREEN='\033[0;32m'
@@ -19,22 +19,20 @@ ${NC}
 EOF
 
 read -p "Enter your domain (e.g., panel.example.com): " DOMAIN
-DB_NAME=panel
-DB_USER=pterodactyl
-DB_PASS=yourPassword
 
-# --- Update & Dependencies ---
-apt update && apt install -y software-properties-common curl apt-transport-https ca-certificates gnupg unzip git tar
+# --- Dependencies ---
+apt update && apt install -y software-properties-common curl apt-transport-https ca-certificates gnupg unzip git tar sudo
+
 LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
-curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/redis.list
+curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
 apt update
 
-# --- Install PHP + required extensions ---
-apt install -y php8.3 php8.3-{cli,fpm,common,gd,mysql,mbstring,bcmath,xml,curl,zip} php8.3-mbstring php8.3-xml php8.3-zip php8.3-simplexml php8.3-dom mariadb-server nginx redis-server
+# --- Install PHP + extensions ---
+apt install -y php8.4 php8.4-{cli,fpm,common,mysql,mbstring,bcmath,xml,zip,curl,gd,tokenizer,ctype,simplexml,dom} mariadb-server nginx redis-server
 
-# --- Composer install ---
-curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# --- Install Composer ---
+curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
 
 # --- Download Pterodactyl Panel ---
 mkdir -p /var/www/pterodactyl
@@ -44,6 +42,9 @@ tar -xzvf panel.tar.gz
 chmod -R 755 storage/* bootstrap/cache/
 
 # --- MariaDB Setup ---
+DB_NAME=panel
+DB_USER=pterodactyl
+DB_PASS=yourPassword
 mariadb -e "CREATE USER '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';"
 mariadb -e "CREATE DATABASE ${DB_NAME};"
 mariadb -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1' WITH GRANT OPTION;"
@@ -62,10 +63,12 @@ if ! grep -q "^APP_ENVIRONMENT_ONLY=" .env; then
     echo "APP_ENVIRONMENT_ONLY=false" >> .env
 fi
 
-# --- Composer dependencies install ---
-COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
+# --- Install PHP dependencies ---
+echo "✅ Installing PHP dependencies..."
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-pdo_mysql --ignore-platform-req=ext-zip --ignore-platform-req=ext-simplexml --ignore-platform-req=ext-dom
 
-# --- Generate Key ---
+# --- Generate Application Key ---
+echo "✅ Generating application key..."
 php artisan key:generate --force
 
 # --- Run Migrations ---
@@ -75,7 +78,7 @@ php artisan migrate --seed --force
 chown -R www-data:www-data /var/www/pterodactyl/*
 (crontab -l 2>/dev/null; echo "* * * * * php /var/www/pterodactyl/artisan schedule:run >> /dev/null 2>&1") | crontab -
 
-# --- NGINX SSL & Config ---
+# --- Nginx Setup ---
 mkdir -p /etc/certs/panel
 cd /etc/certs/panel
 openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
@@ -99,14 +102,14 @@ server {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
     location ~ \.php\$ {
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 }
 EOF
 
-ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/pterodactyl.conf
+ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/pterodactyl.conf || true
 nginx -t && systemctl restart nginx
 
 # --- Queue Worker ---
@@ -114,12 +117,14 @@ tee /etc/systemd/system/pteroq.service > /dev/null << 'EOF'
 [Unit]
 Description=Pterodactyl Queue Worker
 After=redis-server.service
+
 [Service]
 User=www-data
 Group=www-data
 Restart=always
 ExecStart=/usr/bin/php /var/www/pterodactyl/artisan queue:work --queue=high,standard,low --sleep=3 --tries=3
 RestartSec=5s
+
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -128,8 +133,8 @@ systemctl daemon-reload
 systemctl enable --now redis-server
 systemctl enable --now pteroq.service
 
-# --- Create Admin User ---
+# --- Admin User ---
 php artisan p:user:make
 
-echo "✅ Pterodactyl Panel setup complete!"
+echo "✅ Pterodactyl setup complete!"
 echo "URL: https://${DOMAIN}"
