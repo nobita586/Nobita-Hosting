@@ -4,27 +4,26 @@
 # Pterodactyl Full Master Setup Script with Fixed Banner
 # ----------------------------------
 
-# Banner with color
+# Banner
 GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 cat << EOF
-${GREEN}                                                                 
-888b      88               88           88                        
-8888b     88               88           ""    ,d                  
-88 \`8b    88               88                 88                  
-88  \`8b   88   ,adPPYba,   88,dPPYba,   88  MM88MMM  ,adPPYYba,  
-88   \`8b  88  a8"     "8a  88P'    "8a  88    88     ""     \`Y8  
-88    \`8b 88  8b       d8  88       d8  88    88     ,adPPPPP88  
-88     \`8888  "8a,   ,a8"  88b,   ,a8"  88    88,    88,    ,88  
-88      \`888   \`"YbbdP"'   8Y"Ybbd8"'   88    "Y888  \`"8bbdP"Y8  
-                                                                 
-                                                                  ${NC}
+${GREEN}
+888b      88               88           88
+8888b     88               88           ""    ,d
+88 \`8b    88               88                 88
+88  \`8b   88   ,adPPYba,   88,dPPYba,   88  MM88MMM  ,adPPYYba,
+88   \`8b  88  a8"     "8a  88P'    "8a  88    88     ""     \`Y8
+88    \`8b 88  8b       d8  88       d8  88    88     ,adPPPPP88
+88     \`8888  "8a,   ,a8"  88b,   ,a8"  88    88,    88,    ,88
+88      \`888   \`"YbbdP"'   8Y"Ybbd8"'   88    "Y888  \`"8bbdP"Y8
+${NC}
 EOF
 
-# Ask for domain name once
+# Ask for domain
 read -p "Enter your domain (e.g., panel.example.com): " DOMAIN
 
-# --- Panel Dependency Setup ---
+# --- Install Dependencies ---
 apt -y install software-properties-common curl apt-transport-https ca-certificates gnupg
 LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
 curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
@@ -51,9 +50,9 @@ sudo mariadb -e "CREATE DATABASE ${DB_NAME};"
 sudo mariadb -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1' WITH GRANT OPTION;"
 sudo mariadb -e "FLUSH PRIVILEGES;"
 
-# Copy .env and configure
+# --- Create .env ---
 if [ ! -f ".env.example" ]; then
-    echo ".env.example not found, downloading fresh copy..."
+    echo ".env.example not found, downloading..."
     curl -Lo .env.example https://raw.githubusercontent.com/pterodactyl/panel/develop/.env.example
 fi
 
@@ -62,21 +61,20 @@ sed -i "s|APP_URL=.*|APP_URL=https://${DOMAIN}|g" .env
 sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|g" .env
 sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USER}|g" .env
 sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|g" .env
-
-# Add APP_ENVIRONMENT_ONLY=false
-if grep -q "^APP_ENVIRONMENT_ONLY=" .env; then
-    sed -i "s|^APP_ENVIRONMENT_ONLY=.*|APP_ENVIRONMENT_ONLY=false|g" .env
-else
+if ! grep -q "^APP_ENVIRONMENT_ONLY=" .env; then
     echo "APP_ENVIRONMENT_ONLY=false" >> .env
 fi
 
-
-# Install PHP dependencies and generate key
-cd /var/www/pterodactyl
-php artisan key:generate --force
+# --- Install Dependencies for Laravel ---
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
-# Run migrations & set permissions
+
+# --- Generate Encryption Key (Fix) ---
+php artisan key:generate --force
+
+# --- Run Migrations ---
 php artisan migrate --seed --force
+
+# --- Set Permissions ---
 chown -R www-data:www-data /var/www/pterodactyl/*
 (crontab -l 2>/dev/null; echo "* * * * * php /var/www/pterodactyl/artisan schedule:run >> /dev/null 2>&1") | crontab -
 
@@ -114,7 +112,7 @@ sudo tee /etc/nginx/sites-available/pterodactyl.conf > /dev/null << EOF
 server {
     listen 80;
     server_name ${DOMAIN};
-    return 301 \$server_name\$request_uri;
+    return 301 https://\$server_name\$request_uri;
 }
 
 server {
@@ -134,37 +132,15 @@ server {
 
     ssl_certificate /etc/certs/panel/fullchain.pem;
     ssl_certificate_key /etc/certs/panel/privkey.pem;
-    ssl_session_cache shared:SSL:10m;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384";
-    ssl_prefer_server_ciphers on;
-
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Robots-Tag none;
-    add_header Content-Security-Policy "frame-ancestors 'self'";
-    add_header X-Frame-Options DENY;
-    add_header Referrer-Policy same-origin;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
 
     location ~ \.php\$ {
-        fastcgi_split_path_info ^(.+\.php)(/.+)\$;
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-        fastcgi_index index.php;
         include fastcgi_params;
-        fastcgi_param PHP_VALUE "upload_max_filesize = 100M \n post_max_size=100M";
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        fastcgi_param HTTP_PROXY "";
-        fastcgi_intercept_errors off;
-        fastcgi_buffer_size 16k;
-        fastcgi_buffers 4 16k;
-        fastcgi_connect_timeout 300;
-        fastcgi_send_timeout 300;
-        fastcgi_read_timeout 300;
-        include /etc/nginx/fastcgi_params;
     }
 
     location ~ /\.ht {
@@ -177,10 +153,8 @@ sudo ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl restart nginx
 
 # --- Create Admin User ---
-cd /var/www/pterodactyl
 php artisan p:user:make
 
-# --- Display Panel Info ---
-echo "\nPterodactyl Panel setup complete!"
-echo "Visit your panel at: https://${DOMAIN}"
-echo "Your database name: ${DB_NAME}, user: ${DB_USER}"
+echo "✅ Pterodactyl Panel setup complete!"
+echo "URL: https://${DOMAIN}"
+echo "DB: ${DB_NAME}, User: ${DB_USER}"
