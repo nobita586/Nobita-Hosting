@@ -70,7 +70,7 @@ while true; do
         1) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/panel.sh" ;;
         2) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/wing.sh" ;;
         3) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/up.sh" ;;
-        4) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/uninstall.sh" ;;
+        4) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/refs/heads/main/cd/uninstalll.sh" ;;
         5) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/blueprint.sh" ;;
         6) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/v4.sh" ;;
         7) choose_theme ;;
