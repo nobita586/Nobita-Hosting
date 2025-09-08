@@ -3,7 +3,7 @@
 # Function to display ASCII banner
 show_banner() {
     echo "========================================"
-    echo "          CD FOLDER MENU"
+    echo "          Nobita hosting
     echo "========================================"
 }
 
