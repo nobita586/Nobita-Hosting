@@ -22,7 +22,7 @@ choose_theme() {
     read -p "Press Enter to continue..."
 }
 
-# View folder contents
+# Function to view folder contents
 view_contents() {
     echo "Current folder contents:"
     echo "----------------------------------------"
@@ -31,7 +31,7 @@ view_contents() {
     read -p "Press Enter to continue..."
 }
 
-# Show system information
+# Function to show system information
 system_info() {
     echo "=== System Information ==="
     echo "Hostname: $(hostname)"
@@ -43,7 +43,7 @@ system_info() {
     read -p "Press Enter to continue..."
 }
 
-# Main menu
+# Function to display main menu
 show_menu() {
     clear
     show_banner
