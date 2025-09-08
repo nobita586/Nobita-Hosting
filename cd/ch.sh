@@ -18,7 +18,7 @@ run_remote_script() {
 # Function to run theme script remotely
 choose_theme() {
     echo "Running theme script..."
-    bash <(curl -s https://raw.githubusercontent.com/nobita586/Nobita-Hosting/refs/heads/main/cd/th.sh)
+    bash <(curl -s https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/th.sh)
     read -p "Press Enter to continue..."
 }
 
