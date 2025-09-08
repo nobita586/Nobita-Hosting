@@ -3,15 +3,30 @@
 read -p "Enter your domain (e.g., panel.example.com): " DOMAIN
 
 # --- Dependencies ---
-apt update && apt install -y software-properties-common curl apt-transport-https ca-certificates gnupg unzip git tar sudo
+apt update && apt install -y curl apt-transport-https ca-certificates gnupg unzip git tar sudo lsb-release
 
-LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+# Detect OS
+OS=$(lsb_release -is | tr '[:upper:]' '[:lower:]')
+
+if [[ "$OS" == "ubuntu" ]]; then
+    echo "✅ Detected Ubuntu. Adding PPA for PHP..."
+    apt install -y software-properties-common
+    LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+elif [[ "$OS" == "debian" ]]; then
+    echo "✅ Detected Debian. Skipping PPA and adding PHP repo manually..."
+    # Add SURY PHP repo for Debian
+    curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/sury-php.gpg
+    echo "deb [signed-by=/usr/share/keyrings/sury-php.gpg] https://packages.sury.org/php/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/sury-php.list
+fi
+
+# Add Redis GPG key and repo
 curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+
 apt update
 
 # --- Install PHP + extensions ---
-apt install -y php8.4 php8.4-{cli,fpm,common,mysql,mbstring,bcmath,xml,zip,curl,gd,tokenizer,ctype,simplexml,dom} mariadb-server nginx redis-server
+apt install -y php8.2 php8.2-{cli,fpm,common,mysql,mbstring,bcmath,xml,zip,curl,gd,tokenizer,ctype,simplexml,dom} mariadb-server nginx redis-server
 
 # --- Install Composer ---
 curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
@@ -47,7 +62,7 @@ fi
 
 # --- Install PHP dependencies ---
 echo "✅ Installing PHP dependencies..."
-COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-pdo_mysql --ignore-platform-req=ext-zip --ignore-platform-req=ext-simplexml --ignore-platform-req=ext-dom
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 
 # --- Generate Application Key ---
 echo "✅ Generating application key..."
@@ -84,7 +99,7 @@ server {
         try_files \$uri \$uri/ /index.php?\$query_string;
     }
     location ~ \.php\$ {
-        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
@@ -119,5 +134,22 @@ systemctl enable --now pteroq.service
 cd /var/www/pterodactyl
 php artisan p:user:make
 
-echo "✅ Pterodactyl setup complete!"
-echo "URL: https://${DOMAIN}"
+# --- Animated Info ---
+echo -e "\n\e[1;32m✔ Pterodactyl Panel Setup Complete!\e[0m"
+echo -ne "\e[1;34mFinalizing installation"
+for i in {1..5}; do
+    echo -n "."
+    sleep 0.5
+done
+echo -e "\n"
+
+echo -e "\e[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\e[0m"
+echo -e "\e[1;36m  ✅ Installation Completed Successfully! \e[0m"
+echo -e "\e[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\e[0m"
+echo -e "\e[1;32m  🌐 Your Panel URL: \e[1;37mhttps://${DOMAIN}\e[0m"
+echo -e "\e[1;32m  📂 Panel Directory: \e[1;37m/var/www/pterodactyl\e[0m"
+echo -e "\e[1;32m  🛠 Create Admin: \e[1;37mphp artisan p:user:make\e[0m"
+echo -e "\e[1;32m  🔑 DB User: \e[1;37m${DB_USER}\e[0m"
+echo -e "\e[1;32m  🔑 DB Password: \e[1;37m${DB_PASS}\e[0m"
+echo -e "\e[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\e[0m"
+echo -e "\e[1;35m  🎉 Enjoy your Pterodactyl Panel! \e[0m"
