@@ -14,39 +14,48 @@ cat << "EOF"
 88      `888   `"YbbdP"'   8Y"Ybbd8"'   88    "Y888  `"8bbdP"Y8  
 EOF
 
-# Colors for output
+# ------------------------------
+# Colors
+# ------------------------------
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # ------------------------------
-# Nobita hosting
+# Move to target directory
 # ------------------------------
-
 DIR="/var/www/pterodactyl"
-mkdir -p "$DIR" || { echo -e "${RED}Directory cannot be created${NC}"; exit 1; }
+mkdir -p "$DIR"
 cd "$DIR" || { echo -e "${RED}Cannot enter directory${NC}"; exit 1; }
 
-URL="https://www.mediafire.com/file/o3wlsu0kn6us5da/nebula.blueprint/file"
+# ------------------------------
+# GitHub raw file URL
+# ------------------------------
+URL="https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/th/nebula.blueprint"
 
-echo -e "${YELLOW}Fetching MediaFire download link...${NC}"
-REAL_URL=$(curl -s "$URL" | grep -oP 'kNO=\\"(.*?)\\"' | head -1 | cut -d'"' -f2)
-
-if [ -z "$REAL_URL" ]; then
-    echo -e "${RED}Download link not found. MediaFire page format may have changed.${NC}"
-    exit 1
+# ------------------------------
+# Install aria2 if not installed
+# ------------------------------
+if ! command -v aria2c >/dev/null 2>&1; then
+    echo -e "${YELLOW}Installing aria2...${NC}"
+    sudo apt update && sudo apt install aria2 -y
 fi
 
-echo -e "${GREEN}Download link found! Starting download...${NC}"
-wget --progress=bar:force -O nebula.blueprint "$REAL_URL" || { echo -e "${RED}Download failed${NC}"; exit 1; }
+# ------------------------------
+# Download the blueprint file
+# ------------------------------
+echo -e "${YELLOW}Downloading nebula.blueprint from GitHub...${NC}"
+aria2c -x 4 -s 4 -o nebula.blueprint "$URL" || { echo -e "${RED}Download failed${NC}"; exit 1; }
 
 echo -e "${GREEN}File downloaded successfully: $DIR/nebula.blueprint${NC}"
 
+# ------------------------------
+# Run blueprint if installed
+# ------------------------------
 if command -v blueprint >/dev/null 2>&1; then
     echo -e "${YELLOW}Running blueprint...${NC}"
     blueprint -i nebula.blueprint
 else
     echo -e "${RED}Error: 'blueprint' tool not installed.${NC}"
-    exit 1
 fi
