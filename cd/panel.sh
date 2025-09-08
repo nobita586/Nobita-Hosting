@@ -73,8 +73,9 @@ php artisan migrate --seed --force
 
 # --- Permissions ---
 chown -R www-data:www-data /var/www/pterodactyl/*
+apt install -y cron
+systemctl enable --now cron
 (crontab -l 2>/dev/null; echo "* * * * * php /var/www/pterodactyl/artisan schedule:run >> /dev/null 2>&1") | crontab -
-
 # --- Nginx Setup ---
 mkdir -p /etc/certs/panel
 cd /etc/certs/panel
