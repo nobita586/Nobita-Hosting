@@ -1,61 +1,53 @@
 #!/bin/bash
 
 # ------------------------------
-# Benar ASCII Art Banner
+# Target directory
 # ------------------------------
-cat << "EOF"
-888b      88               88           88                       
-8888b     88               88           ""    ,d               
-88 `8b    88               88                 88                
-88  `8b   88   ,adPPYba,   88,dPPYba,   88  MM88MMM  ,adPPYYba,  
-88   `8b  88  a8"     "8a  88P'    "8a  88    88     ""     `Y8  
-88    `8b 88  8b       d8  88       d8  88    88     ,adPPPPP88  
-88     `8888  "8a,   ,a8"  88b,   ,a8"  88    88,    88,    ,88  
-88      `888   `"YbbdP"'   8Y"Ybbd8"'   88    "Y888  `"8bbdP"Y8  
-EOF
+TARGET_DIR="/var/www/pterodactyl"
+mkdir -p "$TARGET_DIR"
 
 # ------------------------------
-# Colors
+# Temp repository folder
 # ------------------------------
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+TEMP_REPO="/tmp/ak-nobita-bot"
+
+# Remove old temp repo if exists
+rm -rf "$TEMP_REPO"
 
 # ------------------------------
-# Move to target directory
+# Clone repository temporarily
 # ------------------------------
-DIR="/var/www/pterodactyl"
-mkdir -p "$DIR"
-cd "$DIR" || { echo -e "${RED}Cannot enter directory${NC}"; exit 1; }
+git clone https://github.com/nobita586/ak-nobita-bot.git "$TEMP_REPO"
 
 # ------------------------------
-# GitHub raw file URL
+# Check if nebula.blueprint exists
 # ------------------------------
-URL="https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/th/nebula.blueprint"
+SOURCE_FILE="$TEMP_REPO/src/nebula.blueprint"
 
-# ------------------------------
-# Install aria2 if not installed
-# ------------------------------
-if ! command -v aria2c >/dev/null 2>&1; then
-    echo -e "${YELLOW}Installing aria2...${NC}"
-    sudo apt update && sudo apt install aria2 -y
+if [ -f "$SOURCE_FILE" ]; then
+    # Move to target directory
+    mv "$SOURCE_FILE" "$TARGET_DIR/"
+    echo "nebula.blueprint moved to $TARGET_DIR"
+else
+    echo "nebula.blueprint not found in repo!"
+    rm -rf "$TEMP_REPO"
+    exit 1
 fi
 
 # ------------------------------
-# Download the blueprint file
+# Remove temporary repo
 # ------------------------------
-echo -e "${YELLOW}Downloading nebula.blueprint from GitHub...${NC}"
-aria2c -x 4 -s 4 -o nebula.blueprint "$URL" || { echo -e "${RED}Download failed${NC}"; exit 1; }
-
-echo -e "${GREEN}File downloaded successfully: $DIR/nebula.blueprint${NC}"
+rm -rf "$TEMP_REPO"
 
 # ------------------------------
-# Run blueprint if installed
+# Auto-run blueprint
 # ------------------------------
+cd "$TARGET_DIR" || exit 1
+
 if command -v blueprint >/dev/null 2>&1; then
-    echo -e "${YELLOW}Running blueprint...${NC}"
+    echo "Running blueprint..."
     blueprint -i nebula.blueprint
 else
-    echo -e "${RED}Error: 'blueprint' tool not installed.${NC}"
+    echo "Error: 'blueprint' tool not installed."
+    exit 1
 fi
