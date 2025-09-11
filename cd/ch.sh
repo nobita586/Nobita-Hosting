@@ -250,7 +250,7 @@ show_menu() {
     echo -e "${GREEN}${BOLD}  3.${RESET} ${BOLD}Update${RESET}      - Update hosting components"
     echo -e "${GREEN}${BOLD}  4.${RESET} ${BOLD}Uninstall${RESET}   - Remove hosting components"
     echo -e "${GREEN}${BOLD}  5.${RESET} ${BOLD}Blueprint${RESET}   - Server blueprint management"
-    echo -e "${GREEN}${BOLD}  6.${RESET} ${BOLD}Tools${RESET}       - Various hosting tools"
+    echo -e "${GREEN}${BOLD}  6.${RESET} ${BOLD}cloudflare${RESET}       - Various hosting tools"
     echo -e "${GREEN}${BOLD}  7.${RESET} ${BOLD}Change Theme${RESET} - Customize appearance"
     echo -e "${GREEN}${BOLD}  8.${RESET} ${BOLD}View Contents${RESET} - Browse current directory"
     echo -e "${GREEN}${BOLD}  9.${RESET} ${BOLD}System Info${RESET}  - Display system information"
@@ -299,7 +299,7 @@ while true; do
         3) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/up.sh" ;;
         4) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/uninstalll.sh" ;;
         5) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/blueprint.sh" ;;
-        6) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/v4.sh" ;;
+        6) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/cloudflare.sh" ;;
         7) choose_theme ;;
         8) view_contents ;;
         9) system_info ;;
