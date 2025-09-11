@@ -146,7 +146,7 @@ EOF
 systemctl daemon-reload
 systemctl enable --now redis-server
 systemctl enable --now pteroq.service
-
+clear
 # --- Admin User ---
 cd /var/www/pterodactyl
 php artisan p:user:make
