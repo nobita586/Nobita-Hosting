@@ -1,157 +1,277 @@
 #!/bin/bash
 
-# CD Menu Script
-# This script provides a menu interface for various operations
+# Colors
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+BLUE="\e[34m"
+MAGENTA="\e[35m"
+CYAN="\e[36m"
+WHITE="\e[37m"
+RESET="\e[0m"
 
-# Display ASCII Art Banner
+# Background Colors
+BG_RED="\e[41m"
+BG_GREEN="\e[42m"
+BG_YELLOW="\e[43m"
+BG_BLUE="\e[44m"
+BG_MAGENTA="\e[45m"
+BG_CYAN="\e[46m"
+BG_WHITE="\e[47m"
+
+# Styles
+BOLD="\e[1m"
+DIM="\e[2m"
+ITALIC="\e[3m"
+UNDERLINE="\e[4m"
+BLINK="\e[5m"
+REVERSE="\e[7m"
+
+# Function to display enhanced ASCII banner
 show_banner() {
-    cat << "EOF"
-888b      88               88           88                       
-8888b     88               88           ""    ,d               
-88 `8b    88               88                 88                
-88  `8b   88   ,adPPYba,   88,dPPYba,   88  MM88MMM  ,adPPYYba,  
-88   `8b  88  a8"     "8a  88P'    "8a  88    88     ""     `Y8  
-88    `8b 88  8b       d8  88       d8  88    88     ,adPPPPP88  
-88     `8888  "8a,   ,a8"  88b,   ,a8"  88    88,    88,    ,88  
-88      `888   `"YbbdP"'   8Y"Ybbd8"'   88    "Y888  `"8bbdP"Y8  
-EOF
-    echo ""
+    clear
+    echo -e "${BG_BLUE}${WHITE}${BOLD}                                                    ${RESET}"
+    echo -e "${BG_BLUE}${WHITE}${BOLD}                 NOBITA HOSTING                     ${RESET}"
+    echo -e "${BG_BLUE}${WHITE}${BOLD}                 ==============                     ${RESET}"
+    echo -e "${BG_BLUE}${WHITE}${BOLD}                                                    ${RESET}"
+    echo -e "${CYAN}${BOLD}            Your Ultimate Hosting Solution            ${RESET}"
+    echo -e ""
 }
 
-# Function to display menu
+# Check if curl is installed
+check_curl() {
+    if ! command -v curl &>/dev/null; then
+        echo -e "${RED}${BOLD}Error: curl is not installed.${RESET}"
+        echo -e "${YELLOW}Installing curl...${RESET}"
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get update && sudo apt-get install -y curl
+        elif command -v yum &>/dev/null; then
+            sudo yum install -y curl
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y curl
+        else
+            echo -e "${RED}Could not install curl automatically. Please install it manually.${RESET}"
+            exit 1
+        fi
+        echo -e "${GREEN}curl installed successfully!${RESET}"
+    fi
+}
+
+# Function to display a message box
+message_box() {
+    local title=$1
+    local message=$2
+    local width=${3:-50}
+    
+    echo -e "${BG_BLUE}${WHITE}${BOLD} $(printf "%-${width}s" "$title") ${RESET}"
+    echo -e "${BG_WHITE}${BLACK} $(printf "%-${width}s" " ") ${RESET}"
+    while IFS= read -r line; do
+        echo -e "${BG_WHITE}${BLACK} $(printf "%-${width}s" "$line") ${RESET}"
+    done <<< "$(echo "$message" | fold -w $width)"
+    echo -e "${BG_WHITE}${BLACK} $(printf "%-${width}s" " ") ${RESET}"
+    echo -e "${BG_BLUE}${WHITE}${BOLD} $(printf "%-${width}s" " ") ${RESET}"
+}
+
+# Function to display progress bar
+progress_bar() {
+    local duration=${1:-5}
+    local width=50
+    local increment=$((100 / width))
+    local count=0
+    local total=$width
+    
+    echo -ne "${GREEN}${BOLD}["
+    
+    for ((i=0; i<width; i++)); do
+        echo -ne " "
+    done
+    
+    echo -ne "]${RESET}"
+    
+    echo -ne "\r${GREEN}${BOLD}["
+    
+    while [ $count -lt $total ]; do
+        sleep $(echo "scale=2; $duration/$width" | bc)
+        echo -ne "▇"
+        count=$((count + 1))
+    done
+    
+    echo -ne "]${RESET}"
+    echo
+}
+
+# Function to run remote scripts with enhanced error handling
+run_remote_script() {
+    local url=$1
+    local script_name=$(basename "$url")
+    
+    echo -e "${YELLOW}${BOLD}Running: ${CYAN}$script_name${RESET}"
+    echo -e "${DIM}URL: $url${RESET}"
+    echo
+    
+    check_curl
+    
+    # Create a temporary file for the script
+    local temp_script=$(mktemp)
+    
+    # Download the script with progress indicator
+    echo -e "${YELLOW}Downloading script...${RESET}"
+    if curl --progress-bar --fail "$url" -o "$temp_script"; then
+        echo -e "${GREEN}✓ Download successful${RESET}"
+        
+        # Make the script executable
+        chmod +x "$temp_script"
+        
+        echo -e "${YELLOW}Executing script...${RESET}"
+        progress_bar 2
+        
+        # Execute the script
+        bash "$temp_script"
+        local exit_code=$?
+        
+        # Clean up
+        rm -f "$temp_script"
+        
+        if [ $exit_code -eq 0 ]; then
+            echo -e "${GREEN}✓ Script executed successfully${RESET}"
+        else
+            echo -e "${RED}✗ Script execution failed with exit code: $exit_code${RESET}"
+        fi
+        
+    else
+        echo -e "${RED}✗ Failed to download script from $url${RESET}"
+        echo -e "${YELLOW}Please check the URL and your internet connection${RESET}"
+        rm -f "$temp_script"
+    fi
+    
+    echo
+    read -p "Press Enter to continue..."
+}
+
+# Function to run theme script remotely
+choose_theme() {
+    message_box "THEME SELECTION" "You are about to change the theme of your hosting environment. This will download and execute the theme script."
+    run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/th.sh"
+}
+
+# Function to view folder contents with enhanced display
+view_contents() {
+    local current_dir=$(pwd)
+    
+    echo -e "${BG_BLUE}${WHITE}${BOLD}             FOLDER CONTENTS: $(basename "$current_dir")             ${RESET}"
+    echo
+    echo -e "${CYAN}${BOLD}Current Directory:${RESET} ${YELLOW}$current_dir${RESET}"
+    echo
+    echo -e "${GREEN}${BOLD}Files and Directories:${RESET}"
+    echo -e "${BG_WHITE}${BLACK}Permissions  Size  Owner   Group   Modified Date  Name${RESET}"
+    
+    # Use ls with detailed information and human-readable sizes
+    ls -lah | awk '
+    NR==1 {print}
+    NR>1 {
+        # Color coding based on file type
+        if ($1 ~ /^d/) printf "\033[34m"  # Directories in blue
+        else if ($1 ~ /^-.*x/) printf "\033[32m"  # Executables in green
+        else if ($1 ~ /^-/) printf "\033[37m"     # Regular files in white
+        else if ($1 ~ /^l/) printf "\033[36m"     # Symlinks in cyan
+        print $0 "\033[0m"
+    }' | more
+    
+    echo
+    read -p "Press Enter to continue..."
+}
+
+# Function to show enhanced system information
+system_info() {
+    echo -e "${BG_BLUE}${WHITE}${BOLD}             SYSTEM INFORMATION             ${RESET}"
+    echo
+    
+    # Get system data
+    local hostname=$(hostname)
+    local user=$(whoami)
+    local directory=$(pwd)
+    local system=$(uname -srm)
+    local uptime=$(uptime -p | sed 's/up //')
+    local memory=$(free -h | awk '/Mem:/ {print $3"/"$2}')
+    local disk_usage=$(df -h / | awk 'NR==2 {print $3"/"$2 " ("$5")"}')
+    local load_avg=$(cat /proc/loadavg | awk '{print $1", "$2", "$3}')
+    local processes=$(ps aux | wc -l)
+    local users=$(who | wc -l)
+    
+    # Display system data
+    echo -e "${CYAN}${BOLD}Hostname:${RESET} ${YELLOW}$hostname${RESET}"
+    echo -e "${CYAN}${BOLD}Current User:${RESET} ${YELLOW}$user${RESET}"
+    echo -e "${CYAN}${BOLD}Current Directory:${RESET} ${YELLOW}$directory${RESET}"
+    echo -e "${CYAN}${BOLD}System:${RESET} ${YELLOW}$system${RESET}"
+    echo -e "${CYAN}${BOLD}Uptime:${RESET} ${YELLOW}$uptime${RESET}"
+    echo -e "${CYAN}${BOLD}Memory Usage:${RESET} ${YELLOW}$memory${RESET}"
+    echo -e "${CYAN}${BOLD}Disk Usage:${RESET} ${YELLOW}$disk_usage${RESET}"
+    echo -e "${CYAN}${BOLD}Load Average:${RESET} ${YELLOW}$load_avg${RESET}"
+    echo -e "${CYAN}${BOLD}Processes:${RESET} ${YELLOW}$processes${RESET}"
+    echo -e "${CYAN}${BOLD}Logged-in Users:${RESET} ${YELLOW}$users${RESET}"
+    
+    echo
+    read -p "Press Enter to continue..."
+}
+
+# Function to display main menu with enhanced UI
 show_menu() {
+    show_banner
+    echo -e "${BG_BLUE}${WHITE}${BOLD}                  MAIN MENU                   ${RESET}"
+    echo
+    echo -e "${GREEN}${BOLD}  1.${RESET} ${BOLD}Panel${RESET}       - Control panel management"
+    echo -e "${GREEN}${BOLD}  2.${RESET} ${BOLD}Wing${RESET}        - Wing server utilities"
+    echo -e "${GREEN}${BOLD}  3.${RESET} ${BOLD}Update${RESET}      - Update hosting components"
+    echo -e "${GREEN}${BOLD}  4.${RESET} ${BOLD}Uninstall${RESET}   - Remove hosting components"
+    echo -e "${GREEN}${BOLD}  5.${RESET} ${BOLD}Blueprint${RESET}   - Server blueprint management"
+    echo -e "${GREEN}${BOLD}  6.${RESET} ${BOLD}v4${RESET}          - Version 4 utilities"
+    echo -e "${GREEN}${BOLD}  7.${RESET} ${BOLD}Change Theme${RESET} - Customize appearance"
+    echo -e "${GREEN}${BOLD}  8.${RESET} ${BOLD}View Contents${RESET} - Browse current directory"
+    echo -e "${GREEN}${BOLD}  9.${RESET} ${BOLD}System Info${RESET}  - Display system information"
+    echo -e "${RED}${BOLD}  10.${RESET} ${BOLD}Exit${RESET}         - Exit the application"
+    echo
+    echo -e "${BG_BLUE}${WHITE}${BOLD}================================================${RESET}"
+    echo -n -e "${CYAN}${BOLD}Enter your choice [1-10]: ${RESET}"
+}
+
+# Function to display exit message
+exit_message() {
     clear
     show_banner
-    echo "========================================"
-    echo "          CD FOLDER MENU"
-    echo "========================================"
-    echo "1. Panel"
-    echo "2. Wing"
-    echo "3. Update"
-    echo "4. Uninstall"
-    echo "5. Blueprint"
-    echo "6. v4"
-    echo "7. View Folder Contents"
-    echo "8. System Information"
-    echo "9. Exit"
-    echo "========================================"
-    echo -n "Enter your choice [1-9]: "
-}
-
-# Function to run panel.sh
-run_panel() {
-    echo "Running Panel script..."
-    if [ -f "./panel.sh" ]; then
-        chmod +x ./panel.sh
-        ./panel.sh
-    else
-        echo "Error: panel.sh not found in current directory!"
-    fi
-    read -p "Press Enter to continue..."
-}
-
-# Function to run wing.sh
-run_wing() {
-    echo "Running Wing script..."
-    if [ -f "./wing.sh" ]; then
-        chmod +x ./wing.sh
-        ./wing.sh
-    else
-        echo "Error: wing.sh not found in current directory!"
-    fi
-    read -p "Press Enter to continue..."
-}
-
-# Function to run update (assuming up.sh is for update)
-run_update() {
-    echo "Running Update script..."
-    if [ -f "./up.sh" ]; then
-        chmod +x ./up.sh
-        ./up.sh
-    else
-        echo "Error: up.sh not found in current directory!"
-    fi
-    read -p "Press Enter to continue..."
-}
-
-# Function to run uninstall.sh
-run_uninstall() {
-    echo "Running Uninstall script..."
-    if [ -f "./uninstall.sh" ]; then
-        chmod +x ./uninstall.sh
-        ./uninstall.sh
-    else
-        echo "Error: uninstall.sh not found in current directory!"
-    fi
-    read -p "Press Enter to continue..."
-}
-
-# Function to run blueprint.sh
-run_blueprint() {
-    echo "Running Blueprint script..."
-    if [ -f "./blueprint.sh" ]; then
-        chmod +x ./blueprint.sh
-        ./blueprint.sh
-    else
-        echo "Error: blueprint.sh not found in current directory!"
-    fi
-    read -p "Press Enter to continue..."
-}
-
-# Function to run v4 (assuming this might be a future script)
-run_v4() {
-    echo "Running v4 script..."
-    if [ -f "./v4.sh" ]; then
-        chmod +x ./v4.sh
-        ./v4.sh
-    else
-        echo "v4 script is not available or not found!"
-        echo "Please ensure v4.sh file exists."
-    fi
-    read -p "Press Enter to continue..."
-}
-
-# Function to view folder contents
-view_contents() {
-    echo "Current folder contents:"
-    echo "----------------------------------------"
-    ls -la
-    echo "----------------------------------------"
-    read -p "Press Enter to continue..."
-}
-
-# Function to show system information
-system_info() {
-    echo "=== System Information ==="
-    echo "Hostname: $(hostname)"
-    echo "Current user: $(whoami)"
-    echo "Current directory: $(pwd)"
-    echo "System: $(uname -srm)"
-    echo "Uptime: $(uptime -p)"
-    echo "Memory: $(free -h | awk '/Mem:/ {print $3"/"$2}')"
-    read -p "Press Enter to continue..."
+    echo -e "${BG_GREEN}${WHITE}${BOLD}                                                    ${RESET}"
+    echo -e "${BG_GREEN}${WHITE}${BOLD}                 THANK YOU FOR USING                 ${RESET}"
+    echo -e "${BG_GREEN}${WHITE}${BOLD}                   NOBITA HOSTING                    ${RESET}"
+    echo -e "${BG_GREEN}${WHITE}${BOLD}                                                    ${RESET}"
+    echo
+    echo -e "${YELLOW}${BOLD}For support, please contact:${RESET}"
+    echo -e "${CYAN}${BOLD}Website:${RESET} https://nobitahosting.example.com"
+    echo -e "${CYAN}${BOLD}Email:${RESET} support@nobitahosting.example.com"
+    echo
+    progress_bar 3
+    echo
 }
 
 # Main loop
 while true; do
     show_menu
-    read choice
-    
+    read -r choice
+
     case $choice in
-        1) run_panel ;;
-        2) run_wing ;;
-        3) run_update ;;
-        4) run_uninstall ;;
-        5) run_blueprint ;;
-        6) run_v4 ;;
-        7) view_contents ;;
-        8) system_info ;;
-        9) 
-            echo "Goodbye!"
+        1) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/panel.sh" ;;
+        2) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/wing.sh" ;;
+        3) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/up.sh" ;;
+        4) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/uninstalll.sh" ;;
+        5) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/blueprint.sh" ;;
+        6) run_remote_script "https://raw.githubusercontent.com/nobita586/Nobita-Hosting/main/cd/v4.sh" ;;
+        7) choose_theme ;;
+        8) view_contents ;;
+        9) system_info ;;
+        10) 
+            exit_message
             exit 0
             ;;
-        *)
-            echo "Invalid option! Please try again."
+        *) 
+            echo -e "${RED}${BOLD}Invalid option! Please enter a number between 1-10.${RESET}"
             read -p "Press Enter to continue..."
             ;;
     esac
