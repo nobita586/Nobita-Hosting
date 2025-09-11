@@ -76,24 +76,24 @@ system_info() {
 show_menu() {
     clear
     menu_content=$(cat <<EOF
-========== MAIN MENU ==========
-1. Panel
-2. Wing
-3. Update
-4. Uninstall
-5. Blueprint
-6. Cloudflare
-7. Change Theme
-9. System Info
-10. Exit
-===============================
+${BOLD}========== MAIN MENU ==========${RESET}
+${BOLD}1. Panel${RESET}
+${BOLD}2. Wing${RESET}
+${BOLD}3. Update${RESET}
+${BOLD}4. Uninstall${RESET}
+${BOLD}5. Blueprint${RESET}
+${BOLD}6. Cloudflare${RESET}
+${BOLD}7. Change Theme${RESET}
+${BOLD}9. System Info${RESET}
+${BOLD}10. Exit${RESET}
+${BOLD}===============================${RESET}
 EOF
 )
-    echo -e "${CYAN}${BOLD}${menu_content}${RESET}"
-    echo -n "Enter your choice [1-10]: "
+    echo -e "${CYAN}${menu_content}${RESET}"
+    echo -ne "${BOLD}Enter your choice [1-10]: ${RESET}"
 
-    # Save menu to text file
-    echo "$menu_content" > menu.txt
+    # Save menu (with bold effect) to text file
+    echo -e "$menu_content" > menu.txt
 }
 
 # Main loop
