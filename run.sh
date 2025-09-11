@@ -103,10 +103,12 @@ progress_bar() {
 # Function to run remote scripts with enhanced error handling
 run_remote_script() {
     local url=$1
-    local script_name=$(basename "$url")
+    local script_name=$(basename "$url" .sh)
     
-    echo -e "${YELLOW}${BOLD}Running: ${CYAN}$script_name${RESET}"
-    echo -e "${DIM}URL: $url${RESET}"
+    # Convert script name to proper case
+    script_name=$(echo "$script_name" | sed 's/.*/\u&/')
+    
+    echo -e "${YELLOW}${BOLD}Running: ${CYAN}${script_name}${RESET}"
     echo
     
     check_curl
@@ -114,9 +116,9 @@ run_remote_script() {
     # Create a temporary file for the script
     local temp_script=$(mktemp)
     
-    # Download the script with progress indicator
+    # Download the script with progress indicator (without showing URL)
     echo -e "${YELLOW}Downloading script...${RESET}"
-    if curl --progress-bar --fail "$url" -o "$temp_script"; then
+    if curl --progress-bar --fail "$url" -o "$temp_script" 2>/dev/null; then
         echo -e "${GREEN}✓ Download successful${RESET}"
         
         # Make the script executable
@@ -139,8 +141,8 @@ run_remote_script() {
         fi
         
     else
-        echo -e "${RED}✗ Failed to download script from $url${RESET}"
-        echo -e "${YELLOW}Please check the URL and your internet connection${RESET}"
+        echo -e "${RED}✗ Failed to download script${RESET}"
+        echo -e "${YELLOW}Please check your internet connection${RESET}"
         rm -f "$temp_script"
     fi
     
@@ -224,7 +226,7 @@ show_menu() {
     echo -e "${GREEN}${BOLD}  3.${RESET} ${BOLD}Update${RESET}      - Update hosting components"
     echo -e "${GREEN}${BOLD}  4.${RESET} ${BOLD}Uninstall${RESET}   - Remove hosting components"
     echo -e "${GREEN}${BOLD}  5.${RESET} ${BOLD}Blueprint${RESET}   - Server blueprint management"
-    echo -e "${GREEN}${BOLD}  6.${RESET} ${BOLD}v4${RESET}          - Version 4 utilities"
+    echo -e "${GREEN}${BOLD}  6.${RESET} ${BOLD}Tools${RESET}       - Various hosting tools"
     echo -e "${GREEN}${BOLD}  7.${RESET} ${BOLD}Change Theme${RESET} - Customize appearance"
     echo -e "${GREEN}${BOLD}  8.${RESET} ${BOLD}View Contents${RESET} - Browse current directory"
     echo -e "${GREEN}${BOLD}  9.${RESET} ${BOLD}System Info${RESET}  - Display system information"
