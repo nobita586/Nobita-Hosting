@@ -72,21 +72,28 @@ system_info() {
     read -p "Press Enter to continue..."
 }
 
-# Menu
+# Function to generate and display menu
 show_menu() {
     clear
-    echo -e "${CYAN}${BOLD}========== MAIN MENU ==========${RESET}"
-    echo "1. Panel"
-    echo "2. Wing"
-    echo "3. Update"
-    echo "4. Uninstall"
-    echo "5. Blueprint"
-    echo "6. Cloudflare"
-    echo "7. Change Theme"
-    echo "9. System Info"
-    echo "10. Exit"
-    echo -e "${CYAN}${BOLD}==============================${RESET}"
+    menu_content=$(cat <<EOF
+========== MAIN MENU ==========
+1. Panel
+2. Wing
+3. Update
+4. Uninstall
+5. Blueprint
+6. Cloudflare
+7. Change Theme
+9. System Info
+10. Exit
+===============================
+EOF
+)
+    echo -e "${CYAN}${BOLD}${menu_content}${RESET}"
     echo -n "Enter your choice [1-10]: "
+
+    # Save menu to text file
+    echo "$menu_content" > menu.txt
 }
 
 # Main loop
