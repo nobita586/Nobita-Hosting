@@ -1,0 +1,190 @@
+#!/bin/bash
+set -e
+
+DB_USER="paymenter"
+DB_PASS="yourPassword"
+DB_NAME="paymenter"
+APP_DIR="/var/www/paymenter"
+SERVICE_FILE="/etc/systemd/system/paymenter.service"
+CERT_DIR="/etc/certs/paymenter"
+NGINX_CONF="/etc/nginx/sites-available/paymenter.conf"
+
+# ====== Ask for Domain ======
+read -rp "Enter your domain name (e.g., example.com): " DOMAIN
+if [[ -z "$DOMAIN" ]]; then
+    echo "❌ Domain cannot be empty!"
+    exit 1
+fi
+
+# ====== Detect OS ======
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    if [[ "$ID" == "ubuntu" ]]; then
+        echo "✅ Detected: Ubuntu ($VERSION_ID)"
+    elif [[ "$ID" == "debian" ]]; then
+        echo "✅ Detected: Debian ($VERSION_ID)"
+    else
+        echo "⚠️ Detected: $NAME (not officially supported)"
+    fi
+else
+    echo "❌ Cannot detect OS: /etc/os-release not found"
+    exit 1
+fi
+
+# ====== Update & Dependencies ======
+echo "📦 Updating system packages..."
+apt update -y
+apt upgrade -y
+
+echo "📦 Installing base dependencies..."
+apt -y install software-properties-common curl apt-transport-https ca-certificates gnupg lsb-release unzip git cron openssl
+
+# ====== Add PHP Repo ======
+echo "📦 Adding PHP repository..."
+LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+
+# ====== Add MariaDB Repo ======
+echo "📦 Adding MariaDB repository..."
+curl -sSL https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-10.11"
+
+# ====== Install PHP, MariaDB, Nginx, Redis ======
+echo "📦 Installing PHP, MariaDB, Nginx, Redis..."
+apt update -y
+apt -y install \
+  php8.3 php8.3-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,intl,redis} \
+  mariadb-server nginx redis-server tar unzip git
+
+# ====== Install Composer ======
+echo "📦 Installing Composer..."
+curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# ====== Download Paymenter ======
+echo "📦 Downloading Paymenter..."
+mkdir -p $APP_DIR
+cd $APP_DIR
+curl -Lo paymenter.tar.gz https://github.com/paymenter/paymenter/releases/latest/download/paymenter.tar.gz
+tar -xzvf paymenter.tar.gz
+rm -f paymenter.tar.gz
+
+# ====== Set Permissions ======
+echo "📂 Setting permissions..."
+chmod -R 755 storage/* bootstrap/cache/
+
+# ====== Install Dependencies ======
+echo "📦 Running Composer install..."
+composer install --no-dev --optimize-autoloader
+
+# ====== Setup Database ======
+echo "📦 Setting up MariaDB database & user..."
+mysql -u root <<MYSQL_SCRIPT
+CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
+CREATE DATABASE IF NOT EXISTS ${DB_NAME};
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+MYSQL_SCRIPT
+
+# ====== Laravel Setup ======
+echo "⚙️ Configuring Laravel (Paymenter)..."
+cd $APP_DIR
+cp .env.example .env
+php artisan key:generate --force
+php artisan storage:link
+php artisan migrate --force --seed
+php artisan app:init
+
+# ====== Setup Cron Job ======
+echo "📅 Setting up cron job for Laravel scheduler..."
+CRON_JOB="* * * * * php $APP_DIR/artisan schedule:run >> /dev/null 2>&1"
+( crontab -l 2>/dev/null | grep -F "$APP_DIR/artisan schedule:run" ) || ( crontab -l 2>/dev/null; echo "$CRON_JOB" ) | crontab -
+
+systemctl enable cron
+systemctl restart cron
+
+# ====== Create systemd Service ======
+echo "⚙️ Creating systemd service for Paymenter queue worker..."
+cat > $SERVICE_FILE <<EOL
+[Unit]
+Description=Paymenter Queue Worker
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+ExecStart=/usr/bin/php $APP_DIR/artisan queue:work
+StartLimitInterval=180
+StartLimitBurst=30
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+systemctl daemon-reload
+systemctl enable --now paymenter.service
+systemctl enable --now redis-server
+
+# ====== Generate SSL Certificate ======
+echo "🔐 Generating self-signed SSL certificate..."
+mkdir -p $CERT_DIR
+cd $CERT_DIR
+openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
+  -subj "/C=NA/ST=NA/L=NA/O=NA/CN=Generic SSL Certificate" \
+  -keyout privkey.pem -out fullchain.pem
+
+# ====== Nginx Config ======
+echo "⚙️ Creating Nginx config for Paymenter..."
+cat > $NGINX_CONF <<EOL
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name $DOMAIN;
+    root $APP_DIR/public;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+
+    index index.php;
+    charset utf-8;
+
+    ssl_certificate $CERT_DIR/fullchain.pem;
+    ssl_certificate_key $CERT_DIR/privkey.pem;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+}
+EOL
+
+# Enable site & restart nginx
+ln -sf $NGINX_CONF /etc/nginx/sites-enabled/paymenter.conf
+systemctl restart nginx
+
+# Fix ownership
+chown -R www-data:www-data $APP_DIR/*
+
+echo "✅ Paymenter installation fully completed!"
+echo "👉 DB User: $DB_USER"
+echo "👉 DB Pass: $DB_PASS"
+echo "👉 DB Name: $DB_NAME"
+echo "👉 Files: $APP_DIR"
+echo "👉 Cron job added for Laravel schedule"
+echo "👉 Service: paymenter (queue worker) enabled & running"
+echo "👉 Service: redis-server enabled & running"
+echo "👉 SSL certs generated in: $CERT_DIR"
+echo "👉 Nginx config: $NGINX_CONF"
+echo "👉 Access your site: https://$DOMAIN/"
