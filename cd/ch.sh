@@ -95,13 +95,13 @@ message_box() {
     echo -e "${BG_BLUE}${WHITE}${BOLD} $(printf "%-${width}s" " ") ${RESET}"
 }
 
-# Function to display progress bar
+# Function to display progress bar (fixed without bc)
 progress_bar() {
     local duration=${1:-5}
     local width=50
-    local increment=$((100 / width))
+    local increment=0.1
+    local steps=$(echo "$duration / $increment" | awk '{print int($1)}')
     local count=0
-    local total=$width
     
     echo -ne "${GREEN}${BOLD}["
     
@@ -110,13 +110,19 @@ progress_bar() {
     done
     
     echo -ne "]${RESET}"
-    
     echo -ne "\r${GREEN}${BOLD}["
     
-    while [ $count -lt $total ]; do
-        sleep $(echo "scale=2; $duration/$width" | bc)
-        echo -ne "▇"
+    while [ $count -lt $steps ]; do
+        sleep $increment
+        if [ $((count * width / steps)) -gt $(( (count-1) * width / steps )) ]; then
+            echo -ne "▇"
+        fi
         count=$((count + 1))
+    done
+    
+    # Fill any remaining space
+    for ((i=$(echo "$count * $width / $steps" | awk '{print int($1)}'); i<width; i++)); do
+        echo -ne "▇"
     done
     
     echo -ne "]${RESET}"
@@ -216,12 +222,12 @@ system_info() {
     local user=$(whoami)
     local directory=$(pwd)
     local system=$(uname -srm)
-    local uptime=$(uptime -p | sed 's/up //')
-    local memory=$(free -h | awk '/Mem:/ {print $3"/"$2}')
-    local disk_usage=$(df -h / | awk 'NR==2 {print $3"/"$2 " ("$5")"}')
-    local load_avg=$(cat /proc/loadavg | awk '{print $1", "$2", "$3}')
-    local processes=$(ps aux | wc -l)
-    local users=$(who | wc -l)
+    local uptime=$(uptime -p 2>/dev/null || uptime)
+    local memory=$(free -h 2>/dev/null | awk '/Mem:/ {print $3"/"$2}' || echo "N/A")
+    local disk_usage=$(df -h / 2>/dev/null | awk 'NR==2 {print $3"/"$2 " ("$5")"}' || echo "N/A")
+    local load_avg=$(cat /proc/loadavg 2>/dev/null | awk '{print $1", "$2", "$3}' || echo "N/A")
+    local processes=$(ps aux 2>/dev/null | wc -l || echo "N/A")
+    local users=$(who 2>/dev/null | wc -l || echo "N/A")
     
     # Display system data
     echo -e "${CYAN}${BOLD}Hostname:${RESET} ${YELLOW}$hostname${RESET}"
@@ -250,7 +256,7 @@ show_menu() {
     echo -e "${GREEN}${BOLD}  3.${RESET} ${BOLD}Update${RESET}      - Update hosting components"
     echo -e "${GREEN}${BOLD}  4.${RESET} ${BOLD}Uninstall${RESET}   - Remove hosting components"
     echo -e "${GREEN}${BOLD}  5.${RESET} ${BOLD}Blueprint${RESET}   - Server blueprint management"
-    echo -e "${GREEN}${BOLD}  6.${RESET} ${BOLD}cloudflare${RESET}       - Various hosting tools"
+    echo -e "${GREEN}${BOLD}  6.${RESET} ${BOLD}Cloudflare${RESET}  - Cloudflare utilities"
     echo -e "${GREEN}${BOLD}  7.${RESET} ${BOLD}Change Theme${RESET} - Customize appearance"
     echo -e "${GREEN}${BOLD}  8.${RESET} ${BOLD}View Contents${RESET} - Browse current directory"
     echo -e "${GREEN}${BOLD}  9.${RESET} ${BOLD}System Info${RESET}  - Display system information"
@@ -281,7 +287,7 @@ EOF
     echo -e "${BG_GREEN}${WHITE}${BOLD}                                                    ${RESET}"
     echo
     echo -e "${YELLOW}${BOLD}For support, please contact:${RESET}"
-    echo -e "${CYAN}${BOLD}discord:${RESET} https://discord.gg/b9HgcRV7TR"
+    echo -e "${CYAN}${BOLD}Discord:${RESET} https://discord.gg/b9HgcRV7TR"
     echo -e "${CYAN}${BOLD}Email:${RESET} support@nobitahosting.host"
     echo
     progress_bar 3
