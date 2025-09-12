@@ -30,6 +30,7 @@ fi
 echo "📦 Updating system packages..."
 apt update -y && apt upgrade -y
 apt -y install software-properties-common curl apt-transport-https ca-certificates gnupg lsb-release unzip git cron openssl
+curl -sSL https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version="mariadb-10.11"
 
 # ====== Add PHP Repo ======
 LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
@@ -54,7 +55,7 @@ rm -f paymenter.tar.gz
 chmod -R 755 storage bootstrap/cache
 
 # ====== Install Composer Dependencies ======
-composer install --no-dev --optimize-autoloader
+composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
 # ====== Setup Database ======
 echo "📦 Configuring MariaDB..."
