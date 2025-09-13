@@ -16,7 +16,7 @@ echo "PasswordAuthentication yes" >> "$CONFIG_FILE"
 
 # Step 4: Restart SSH service
 echo "[*] Restarting sshd service..."
-systemctl restart sshd
+sudo systemctl restart ssh
 
 # Step 5: Prompt user to manually set root password
 echo
