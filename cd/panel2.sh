@@ -57,7 +57,9 @@ sed -i "s|APP_URL=.*|APP_URL=https://${DOMAIN}|g" .env
 sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|g" .env
 sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USER}|g" .env
 sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|g" .env
-
+if ! grep -q "^APP_ENVIRONMENT_ONLY=" .env; then
+    echo "APP_ENVIRONMENT_ONLY=false" >> .env
+fi
 # --- Clean old entries ---
 sed -i '/^APP_ENVIRONMENT_ONLY=/d' .env
 sed -i '/^APP_THEME=/d' .env
