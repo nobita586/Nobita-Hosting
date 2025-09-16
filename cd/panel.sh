@@ -1,6 +1,8 @@
 #!/bin/bash
-
+clear
 read -p "Enter your domain (e.g., panel.example.com): " DOMAIN
+read -p "Enter admin email: " ADMIN_EMAIL
+
 
 # --- Dependencies ---
 apt update && apt install -y curl apt-transport-https ca-certificates gnupg unzip git tar sudo lsb-release
@@ -149,7 +151,7 @@ systemctl enable --now pteroq.service
 clear
 # --- Admin User ---
 cd /var/www/pterodactyl
-php artisan p:user:make
+php artisan p:user:make --admin --email="${ADMIN_EMAIL}" --username="admin" --name="Administrator" --password="admin123" --no-interaction
 
 # --- Animated Info ---
 echo -e "\n\e[1;32m✔ Pterodactyl Panel Setup Complete!\e[0m"
