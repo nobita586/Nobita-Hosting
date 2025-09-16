@@ -151,7 +151,7 @@ systemctl enable --now pteroq.service
 clear
 # --- Admin User ---
 cd /var/www/pterodactyl
-php artisan p:user:make --admin --email="${ADMIN_EMAIL}" --username="admin" --name="Administrator" --password="admin123" --no-interaction
+php artisan p:user:make 
 
 # --- Animated Info ---
 echo -e "\n\e[1;32m✔ Pterodactyl Panel Setup Complete!\e[0m"
