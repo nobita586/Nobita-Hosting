@@ -1,7 +1,6 @@
 #!/bin/bash
 clear
 read -p "Enter your domain (e.g., panel.example.com): " DOMAIN
-read -p "Enter admin email: " ADMIN_EMAIL
 
 
 # --- Dependencies ---
