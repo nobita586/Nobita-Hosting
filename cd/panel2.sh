@@ -150,7 +150,11 @@ systemctl enable --now pteroq.service
 clear
 # --- Admin User ---
 cd /var/www/pterodactyl
-php artisan p:user:make 
+
+sed -i '/^APP_ENVIRONMENT_ONLY=/d' .env
+sed -i '/^APP_THEME=/d' .env
+sed -i '/^APP_TIMEZONE=/d' .env
+sed -i '/^MAIL_/d' .env
 
 # --- Add new env variables ---
 echo "APP_ENVIRONMENT_ONLY=false" >> .env
@@ -171,6 +175,7 @@ echo "MAIL_ENCRYPTION=tls" >> .env
 echo "MAIL_FROM_ADDRESS=no.reply@editorxprress.site" >> .env
 echo 'MAIL_FROM_NAME="Nobita-hosting"' >> .env
 
+php artisan p:user:make 
 
 # --- Animated Info ---
 echo -e "\n\e[1;32m✔ Pterodactyl Panel Setup Complete!\e[0m"
