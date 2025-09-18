@@ -60,29 +60,6 @@ sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|g" .env
 if ! grep -q "^APP_ENVIRONMENT_ONLY=" .env; then
     echo "APP_ENVIRONMENT_ONLY=false" >> .env
 fi
-# --- Clean old entries ---
-sed -i '/^APP_ENVIRONMENT_ONLY=/d' .env
-sed -i '/^APP_THEME=/d' .env
-sed -i '/^APP_TIMEZONE=/d' .env
-sed -i '/^MAIL_/d' .env
-
-# --- Add new env variables ---
-echo "APP_ENVIRONMENT_ONLY=false" >> .env
-echo "APP_THEME=Nobita-hosting" >> .env
-
-# --- Auto detect timezone ---
-TIMEZONE=$(timedatectl show --property=Timezone --value)
-echo "APP_TIMEZONE=${TIMEZONE}" >> .env
-
-# --- Mail configuration ---
-echo "MAIL_MAILER=smtp" >> .env
-echo "MAIL_HOST=smtp.zoho.in" >> .env
-echo "MAIL_PORT=587" >> .env
-echo "MAIL_USERNAME=${ADMIN_EMAIL}" >> .env
-echo "MAIL_PASSWORD=58@S5wZuWtpdDDX" >> .env
-echo "MAIL_ENCRYPTION=tls" >> .env
-echo "MAIL_FROM_ADDRESS=${ADMIN_EMAIL}" >> .env
-echo 'MAIL_FROM_NAME="Nobita-hosting"' >> .env
 
 # --- Install PHP dependencies ---
 echo "✅ Installing PHP dependencies..."
@@ -175,6 +152,26 @@ clear
 cd /var/www/pterodactyl
 php artisan p:user:make 
 
+# --- Add new env variables ---
+echo "APP_ENVIRONMENT_ONLY=false" >> .env
+echo "APP_THEME=Nobita-hosting" >> .env
+
+# --- Auto detect timezone ---
+TIMEZONE=$(timedatectl show --property=Timezone --value)
+echo "APP_TIMEZONE=${TIMEZONE}" >> .env
+
+
+# --- Mail configuration ---
+echo "MAIL_MAILER=smtp" >> .env
+echo "MAIL_HOST=smtp.zoho.in" >> .env
+echo "MAIL_PORT=587" >> .env
+echo "MAIL_USERNAME=no.reply@editorxprress.site" >> .env
+echo "MAIL_PASSWORD=58@S5wZuWtpdDDX" >> .env
+echo "MAIL_ENCRYPTION=tls" >> .env
+echo "MAIL_FROM_ADDRESS=no.reply@editorxprress.site" >> .env
+echo 'MAIL_FROM_NAME="Nobita-hosting"' >> .env
+
+
 # --- Animated Info ---
 echo -e "\n\e[1;32m✔ Pterodactyl Panel Setup Complete!\e[0m"
 echo -ne "\e[1;34mFinalizing installation"
@@ -183,7 +180,6 @@ for i in {1..5}; do
     sleep 0.5
 done
 echo -e "\n"
-
 echo -e "\e[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\e[0m"
 echo -e "\e[1;36m  ✅ Installation Completed Successfully! \e[0m"
 echo -e "\e[1;33m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\e[0m"
