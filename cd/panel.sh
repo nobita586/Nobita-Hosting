@@ -152,6 +152,7 @@ clear
 cd /var/www/pterodactyl
 php artisan p:user:make 
 
+sed -i '/^APP_ENVIRONMENT_ONLY=/d' .env
 echo "APP_ENVIRONMENT_ONLY=false" >> .env
 
 # --- Animated Info ---
