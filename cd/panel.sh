@@ -152,6 +152,8 @@ clear
 cd /var/www/pterodactyl
 php artisan p:user:make 
 
+echo "APP_ENVIRONMENT_ONLY=false" >> .env
+
 # --- Animated Info ---
 echo -e "\n\e[1;32m✔ Pterodactyl Panel Setup Complete!\e[0m"
 echo -ne "\e[1;34mFinalizing installation"
